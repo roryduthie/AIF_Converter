@@ -1,6 +1,6 @@
 FROM python:3.7.4
 
-ADD converter.py /home/cisconverter
+ADD converter.py /home/cisconverter/
 WORKDIR /home/cisconverter
 
 RUN pip install --upgrade pip
