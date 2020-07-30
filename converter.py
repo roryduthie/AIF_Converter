@@ -1,21 +1,21 @@
 from flask import Flask, jsonify, request
+import json
+from centrality import Centrality
 # initialize our Flask application
 app= Flask(__name__)
 
-@app.route("/aifdb-cispace", methods=["POST"])
-def getAifdbCIS():
-    if request.method=='POST':
-        posted_data = request.get_json()
-        data = posted_data['data']
-        return jsonify(str("Successfully stored  " + str(data)))
+@app.route("/aifdb-cispace/<ids>", methods=["GET"])
+def getAifdbCIS(ids):
+    cis_js = is_nodeset(ids)
+    return cis_js
 
 
 @app.route("/json-cispace", methods=["POST"])
 def getAifCIS():
     if request.method=='POST':
         posted_data = request.get_json()
-        data = posted_data['data']
-        return jsonify(str("Successfully stored  " + str(data)))
+        cis_js = is_aif_file(posted_data)
+        return cis_js
 
 
 
@@ -23,12 +23,11 @@ def getAifCIS():
 def getCISAif():
     if request.method=='POST':
         posted_data = request.get_json()
-        data = posted_data['data']
-        aif_js = convertCisToAIF(data)
-        print(aif_js)
-        return jsonify(str("Successfully stored  " + str(data)))
+        aif_js = convertCisToAIF(posted_data)
+        aif_js = json.dumps(aif_js)
+        return aif_js
 
-def convertToCIS(aif_json_graph, aif_json_data, schemes_dict):
+def convertToCIS(aif_json_graph, aif_json_data):
 
     #Deal with nodesetID or JSON file
     from centrality import Centrality
@@ -226,7 +225,7 @@ def convertCisToAIF(cis_json_file):
         })
 
 
-    return json.dumps(new_data)
+    return new_data
 def get_l_node_text(i_node_id, lnode_inode_list, l_node_list):
     for rel_tup in lnode_inode_list:
         lnode_id = rel_tup[0]
@@ -250,19 +249,17 @@ def is_i_s_node(aif_data, node_id):
                 return False
     return False
 
-def is_nodeset(aif_nodesetID, schemes):
+def is_nodeset(aif_nodesetID):
     centra = Centrality()
     dir_path = 'http://www.aifdb.org/json/' + str(aif_nodesetID)
     graph, aif_json_data = centra.get_graph_url(dir_path)
-    json_file = convertToCIS(graph, aif_json_data, schemes)
+    json_file = convertToCIS(graph, aif_json_data)
     return json_file
 
-def is_aif_file(aif_json_file_name, schemes):
+def is_aif_file(aif_json_file):
     centra = Centrality()
-    dir_path = aif_json_file_name
-    graph = centra.get_graph(dir_path)
-    aif_json_data = openJsonFile(dir_path)
-    json_file = convertToCIS(graph, aif_json_data, schemes)
+    graph = centra.get_graph_string(aif_json_file)
+    json_file = convertToCIS(graph, aif_json_file)
     return json_file
 
 def openJsonFile(json_file_name):
