@@ -9,7 +9,6 @@ ADD requirements.txt .
 RUN pip install -r requirements.txt
 RUN pip install gunicorn
 
-ADD app app
 ADD boot.sh ./
 RUN chmod +x boot.sh
 
