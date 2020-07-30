@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 import json
 from centrality import Centrality
+from werkzeug.contrib.fixers import ProxyFix
 # initialize our Flask application
 app= Flask(__name__)
 
@@ -267,5 +268,6 @@ def openJsonFile(json_file_name):
         json_object = json.load(json_file)
     return json_object
 #  main thread of execution to start the server
+app.wsgi_app = ProxyFix(app.wsgi_app)
 if __name__=='__main__':
-    app.run(debug=False)
+    app.run()
