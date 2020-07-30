@@ -88,9 +88,9 @@ def parse_json(node_set):
     for node in node_set['nodes']:
 
         if 'scheme' in node:
-            nID = self.parse_node_id(node['nodeID'])
+            nID = parse_node_id(node['nodeID'])
 
-            G.add_node(self.parse_node_id(node['nodeID']), text=node.get('text', None), type=node.get('type', None),
+            G.add_node(parse_node_id(node['nodeID']), text=node.get('text', None), type=node.get('type', None),
                        timestamp= parse_timestamp(node.get('timestamp', None)), scheme=node.get('scheme', None),
                        scheme_id= parse_scheme_id(node.get('schemeID', None)))
         else:
