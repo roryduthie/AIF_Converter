@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request
 import json
-from werkzeug.contrib.fixers import ProxyFix
 import networkx as nx
 import json
 import requests
@@ -393,6 +392,5 @@ def openJsonFile(json_file_name):
         json_object = json.load(json_file)
     return json_object
 #  main thread of execution to start the server
-app.wsgi_app = ProxyFix(app.wsgi_app)
 if __name__=='__main__':
     app.run()
