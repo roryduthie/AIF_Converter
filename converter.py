@@ -20,7 +20,7 @@ def getAifCIS():
 
 
 @app.route("/cispace-json", methods=["POST"])
-def getAifCIS():
+def getCISAif():
     if request.method=='POST':
         posted_data = request.get_json()
         data = posted_data['data']
