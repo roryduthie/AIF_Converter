@@ -268,4 +268,4 @@ def openJsonFile(json_file_name):
     return json_object
 #  main thread of execution to start the server
 if __name__=='__main__':
-    app.run(debug=True)
+    app.run(debug=False)
