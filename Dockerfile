@@ -15,4 +15,4 @@ RUN chmod +x boot.sh
 ENV FLASK_APP converter.py
 
 EXPOSE 8300
-ENTRYPOINT ["./boot.sh"]
+CMD gunicorn -b :8300 --access-logfile - --error-logfile - converter:app --timeout 3000
