@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 import json
-from .centrality import Centrality
+from app.centrality import Centrality
 from werkzeug.contrib.fixers import ProxyFix
 # initialize our Flask application
 app= Flask(__name__)
