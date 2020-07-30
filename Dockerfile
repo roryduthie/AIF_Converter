@@ -12,6 +12,7 @@ RUN pip install gunicorn
 ADD boot.sh ./
 RUN chmod +x boot.sh
 
+ENV PYTHONPATH "${PYTHONPATH}://home/cisconverter"
 ENV FLASK_APP converter.py
 
 EXPOSE 8300
