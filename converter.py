@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request
 import json
-from app.centrality import Centrality
 from werkzeug.contrib.fixers import ProxyFix
 # initialize our Flask application
 app= Flask(__name__)
@@ -28,10 +27,132 @@ def getCISAif():
         aif_js = json.dumps(aif_js)
         return aif_js
 
+def get_graph_string(json_file):
+    try:
+        graph = parse_json(json_file)
+    except(IOError):
+        print('File was not found:')
+        print(node_path)
+
+    return graph
+
+def parse_timestamp(timestamp):
+        try:
+            cast_timestamp = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+        except (ValueError, TypeError):
+            print('Failed datetime(timestamp) casting:')
+            print(timestamp)
+            cast_timestamp = timestamp
+        return cast_timestamp
+
+def parse_scheme_id(scheme_id):
+    try:
+        cast_scheme_id = int(scheme_id)
+    except (ValueError, TypeError):
+        print('Failed int(schemeID) casting:')
+        print(scheme_id)
+        cast_scheme_id = scheme_id
+    return cast_scheme_id
+
+
+def parse_node_id(node_id):
+    try:
+        cast_node_id = int(node_id)
+    except (ValueError, TypeError):
+        print('Failed int(nodeID) casting:')
+        print(node_id)
+        cast_node_id = node_id
+    return cast_node_id
+
+
+def parse_edge_id(edge_id):
+    try:
+        case_edge_id = int(edge_id)
+    except (ValueError, TypeError):
+        print('Failed int(edgeID) casting:')
+        print(edge_id)
+        case_edge_id = edge_id
+    return case_edge_id
+
+def parse_json(node_set):
+
+    G = nx.DiGraph()
+    locution_dict = {}
+
+    for node in node_set['nodes']:
+
+        if 'scheme' in node:
+            nID = self.parse_node_id(node['nodeID'])
+
+            G.add_node(self.parse_node_id(node['nodeID']), text=node.get('text', None), type=node.get('type', None),
+                       timestamp= parse_timestamp(node.get('timestamp', None)), scheme=node.get('scheme', None),
+                       scheme_id= parse_scheme_id(node.get('schemeID', None)))
+        else:
+            #print(node['nodeID'])
+            nID = parse_node_id(node['nodeID'])
+            if nID == '501681' or nID == 501681:
+                print(node)
+            G.add_node(parse_node_id(node['nodeID']), text=node.get('text', None), type=node.get('type', None),
+                       timestamp=parse_timestamp(node.get('timestamp', None)))
+
+    for edge in node_set['edges']:
+        from_id = parse_edge_id(edge['fromID'])
+        to_id = parse_edge_id(edge['toID'])
+        G.add_edge(from_id, to_id)
+
+    #for locution in node_set['locutions']:
+    #    node_id = self.parse_node_id(locution['nodeID'])
+    #    locution_dict[node_id] = locution
+    return G
+def remove_iso_analyst_nodes(graph):
+    analyst_nodes = []
+    isolated_nodes = list(nx.isolates(graph))
+    for node in isolated_nodes:
+        if graph.nodes[node]['type'] == 'L':
+            analyst_nodes.append(node)
+    graph.remove_nodes_from(analyst_nodes)
+    return graph
+
+def get_l_node_list(graph):
+    l_nodes =  [(x,y['text']) for x,y in graph.nodes(data=True) if y['type']=='L']
+    return l_nodes
+
+def get_loc_prop_pair(graph):
+    i_node_ids =  [x for x,y in graph.nodes(data=True) if y['type']=='I']
+    locution_prop_pair = []
+    for node_id in i_node_ids:
+        preds = list(graph.predecessors(node_id))
+        for pred in preds:
+            node_type=graph.nodes[pred]['type']
+            node_text = graph.nodes[pred]['text']
+
+            if node_type == 'YA' and node_text != 'Agreeing':
+                ya_preds = list(graph.predecessors(pred))
+                for ya_pred in ya_preds:
+                    pred_node_type=graph.nodes[ya_pred]['type']
+                    pred_node_text=graph.nodes[ya_pred]['text']
+
+                    if pred_node_type == 'L':
+                        locution_prop_pair.append((ya_pred, node_id))
+    return locution_prop_pair
+
+
+def get_graph_url(node_path):
+    try:
+        jsn_string = requests.get(node_path).text
+        strng_ind = jsn_string.index('{')
+        n_string = jsn_string[strng_ind:]
+        dta = json.loads(n_string)
+        graph = parse_json(dta)
+    except(IOError):
+        print('File was not found:')
+        print(node_path)
+
+    return graph, dta
+
 def convertToCIS(aif_json_graph, aif_json_data):
 
     #Deal with nodesetID or JSON file
-    from centrality import Centrality
     schemes = {'LPK': 'PositionToKnow', 'LEO': 'ExpertOpinion', 'LAN': 'Analogy', 'LCE':'CauseToEffect', 'LID':'Default Inference', 'LCS':'Default Inference', 'LPV':'Default Inference', 'LPP': 'Default Preference'}
     new_data = {}
     new_data['nodes'] = []
@@ -43,11 +164,9 @@ def convertToCIS(aif_json_graph, aif_json_data):
     new_data['title'] = ""
     new_data['userID'] = ""
 
-    centra = Centrality()
-
-    G = centra.remove_iso_nodes(aif_json_graph)
-    l_nodes = centra.get_l_node_list(G)
-    l_node_i_node = centra.get_loc_prop_pair(G)
+    G = remove_iso_analyst_nodes(aif_json_graph)
+    l_nodes = get_l_node_list(G)
+    l_node_i_node = get_loc_prop_pair(G)
     #Input json file with nodes and edges
     #data = openJsonFile(aif_json_file)
     data = aif_json_data
@@ -251,15 +370,14 @@ def is_i_s_node(aif_data, node_id):
     return False
 
 def is_nodeset(aif_nodesetID):
-    centra = Centrality()
     dir_path = 'http://www.aifdb.org/json/' + str(aif_nodesetID)
-    graph, aif_json_data = centra.get_graph_url(dir_path)
+    graph, aif_json_data = get_graph_url(dir_path)
     json_file = convertToCIS(graph, aif_json_data)
     return json_file
 
 def is_aif_file(aif_json_file):
-    centra = Centrality()
-    graph = centra.get_graph_string(aif_json_file)
+
+    graph = get_graph_string(aif_json_file)
     json_file = convertToCIS(graph, aif_json_file)
     return json_file
 
